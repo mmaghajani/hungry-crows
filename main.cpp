@@ -1,3 +1,5 @@
+using namespace std;
+
 #include <iostream>
 #include <semaphore.h>
 #include <pthread.h>
@@ -12,6 +14,7 @@ int fillingNum = 9;
 int m, n, t;
 sem_t restFood;
 sem_t notify;
+sem_t mutex;
 
 void ready_to_eat();
 
@@ -42,7 +45,9 @@ void mother(void *threadid) {
 void food_ready() {
     for (int i = 0; i < m; i++)
         sem_post(&restFood);
+    sem_wait(&mutex);
     fillingNum = m - 1;
+    sem_post(&mutex);
 }
 
 void goto_sleep() {
@@ -50,29 +55,38 @@ void goto_sleep() {
 }
 
 void finish_eating() {
+    sem_wait(&mutex);
     if (fillingNum == 0) {
         sem_post(&restFood);
     } else {
         fillingNum--;
     }
+    sem_post(&mutex);
 }
 
 void ready_to_eat() {
     sem_wait(&restFood);
+    sem_wait(&mutex);
     if (fillingNum == 0) {
         sem_post(&notify);
         sem_wait(&restFood);
     }
+    sem_post(&mutex);
 }
 
 int main(int argc, char *argv[]) {
+    cin >> n >> m >> t;
+    if( n == 0 ) n = 10 ;
+    if( m == 0 ) m = 10 ;
+    if( t == 0 ) t = 10 ;
 
     int NUM_CROWS = n;
-    int fillingNum = m - 1;
+    fillingNum = m - 1;
     pthread_t crows[NUM_CROWS];
     pthread_t mother;
     sem_init(&restFood, 0, m);
     sem_init(&notify, 0, 1);
+    sem_init(&mutex, 0, 1);
 
     int rc;
     rc = pthread_create(&mother, NULL, crow, (void *) 0);
@@ -92,6 +106,7 @@ int main(int argc, char *argv[]) {
 
     sem_destroy(&restFood);
     sem_destroy(&notify);
+    sem_destroy(&mutex);
     /* Last thing that main() should do */
     pthread_exit(NULL);
 }
