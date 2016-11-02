@@ -5,14 +5,21 @@
 
 #define PLAYING_TIME 1000
 #define EATING_TIME 1000
+#define PREPARING_FOOD_TIME 1000
+#define WAITING_TIME 1000
 
 int fillingNum = 9;
+int m, n, t;
 sem_t restFood;
 sem_t notify;
 
 void ready_to_eat();
 
 void finish_eating();
+
+void goto_sleep();
+
+void food_ready();
 
 void crow(void *threadid) {
     while (true) {
@@ -21,6 +28,25 @@ void crow(void *threadid) {
         delay(EATING_TIME);
         finish_eating();
     }
+}
+
+void mother(void *threadid) {
+    while (t > 0) {
+        goto_sleep();
+        delay(PREPARING_FOOD_TIME);
+        food_ready();
+        delay(WAITING_TIME);
+    }
+}
+
+void food_ready() {
+    for (int i = 0; i < m; i++)
+        sem_post(&restFood);
+    fillingNum = m - 1;
+}
+
+void goto_sleep() {
+    sem_wait(&notify);
 }
 
 void finish_eating() {
@@ -40,17 +66,24 @@ void ready_to_eat() {
 }
 
 int main(int argc, char *argv[]) {
-    int m, n, t;
+
     int NUM_CROWS = n;
     int fillingNum = m - 1;
-    pthread_t threads[NUM_CROWS];
+    pthread_t crows[NUM_CROWS];
+    pthread_t mother;
     sem_init(&restFood, 0, m);
     sem_init(&notify, 0, 1);
+
     int rc;
-    long t;
-    for (t = 0; t < NUM_CROWS; t++) {
+    rc = pthread_create(&mother, NULL, crow, (void *) 0);
+    if (rc) {
+        printf("ERROR; return code from pthread_create() is %d\n", rc);
+        exit(-1);
+    }
+
+    for (long t = 1; t <= NUM_CROWS; t++) {
         printf("In main: creating thread %ld\n", t);
-        rc = pthread_create(&threads[t], NULL, crow, (void *) t);
+        rc = pthread_create(&crows[t], NULL, crow, (void *) t);
         if (rc) {
             printf("ERROR; return code from pthread_create() is %d\n", rc);
             exit(-1);
