@@ -3,22 +3,23 @@ using namespace std;
 #include <iostream>
 #include <semaphore.h>
 #include <pthread.h>
-#include <caca_conio.h>
+#include <unistd.h>
 
-#define PLAYING_TIME 1000
-#define EATING_TIME 1000
-#define PREPARING_FOOD_TIME 1000
-#define WAITING_TIME 1000
+#define PLAYING_TIME 1
+#define EATING_TIME 1
+#define PREPARING_FOOD_TIME 1
+#define WAITING_TIME 1
 
 int fillingNum = 9;
 int m, n, t;
-int awoker;
+void *awoker;
 int feeding = 0;
 sem_t restFood;
 sem_t notify;
 sem_t mutex;
+sem_t console;
 
-void ready_to_eat();
+void ready_to_eat(void *);
 
 void finish_eating();
 
@@ -26,32 +27,43 @@ void goto_sleep();
 
 void food_ready();
 
-void crow(void *threadid) {
-    printf("Baby crow %d started", threadid);
+void* crow(void *threadid) {
+    sem_wait(&console);
+    cout << "Baby crow " << threadid << " started" << endl;
+    sem_post(&console);
     while (true) {
-        delay(PLAYING_TIME);
+        sleep(PLAYING_TIME);
         ready_to_eat(threadid);
-        delay(EATING_TIME);
-        printf("Baby crow %d is eating", threadid);
+        sleep(EATING_TIME);
+        sem_wait(&console);
+        cout << "Baby crow " << threadid << " is eating" << endl;
+        sem_post(&console);
         finish_eating();
     }
 }
 
-void mother(void *threadid) {
-    printf("Mother crow started");
+void* motherCrow(void *threadid) {
+    sem_wait(&console);
+    cout << "Mother crow started" << endl;
+    sem_post(&console);
     while (feeding < t) {
         goto_sleep();
-        delay(PREPARING_FOOD_TIME);
+        sleep(PREPARING_FOOD_TIME);
         food_ready();
-        delay(WAITING_TIME);
+        sleep(WAITING_TIME);
     }
-    printf("Mother crow retires after serving %d feedings. Game ends!!!", feeding);
+    sem_wait(&console);
+    cout << "Mother crow retires after serving " << feeding << " feedings. Game ends!!!" << endl;
+    sem_post(&console);
+    exit(0);
 }
 
 void food_ready() {
     feeding++;
-    printf("Mother crow says \"Feeding (%d)\"", feeding);
-    printf("Mother crow is awoke by baby crow %d and starts preparing food.", awoker);
+    sem_wait(&console);
+    cout << "Mother crow says \"Feeding ("<<feeding << ")" << endl;
+    cout << "Mother crow is awoke by baby crow " << awoker << " and starts preparing food." << endl;
+    sem_post(&console);
     for (int i = 0; i < m; i++)
         sem_post(&restFood);
     sem_wait(&mutex);
@@ -60,7 +72,9 @@ void food_ready() {
 }
 
 void goto_sleep() {
-    printf("Mother crow takes a nap");
+    sem_wait(&console);
+    cout << "Mother crow takes a nap" << endl ;
+    sem_post(&console);
     sem_wait(&notify);
 }
 
@@ -75,12 +89,16 @@ void finish_eating() {
 }
 
 void ready_to_eat(void *threadid) {
-    printf("Baby crow %d is ready to eat", threadid);
+    sem_wait(&console);
+    cout << "Baby crow" << threadid << "is ready to eat" << endl;
+    sem_post(&console);
     sem_wait(&restFood);
     sem_wait(&mutex);
     if (fillingNum == 0) {
-        printf("Baby crow %d sees all feeding pots are empty and wakes up the mother.", threadid);
-        awoker = (int) threadid;
+        sem_wait(&console);
+        cout << "Baby crow" << threadid << " sees all feeding pots are empty and wakes up the mother." << endl;
+        sem_post(&console);
+        awoker = threadid;
         sem_post(&notify);
         sem_wait(&restFood);
     }
@@ -100,11 +118,14 @@ int main(int argc, char *argv[]) {
     sem_init(&restFood, 0, m);
     sem_init(&notify, 0, 1);
     sem_init(&mutex, 0, 1);
+    sem_init(&console, 0, 1);
 
-    printf("MAIN : There are %d baby crows, %d feeding pots , and %d feedings", n, m, t);
-    printf("MAIN : Game starts!!!!!");
+    sem_wait(&console);
+    printf("MAIN : There are %d baby crows, %d feeding pots , and %d feedings\n", n, m, t);
+    printf("MAIN : Game starts!!!!!\n");
+    sem_post(&console);
     int rc;
-    rc = pthread_create(&mother, NULL, crow, (void *) 0);
+    rc = pthread_create(&mother, NULL, motherCrow, (void *) 0);
     if (rc) {
         printf("ERROR; return code from pthread_create() is %d\n", rc);
         exit(-1);
@@ -121,6 +142,7 @@ int main(int argc, char *argv[]) {
     sem_destroy(&restFood);
     sem_destroy(&notify);
     sem_destroy(&mutex);
+    sem_destroy(&console);
     /* Last thing that main() should do */
     pthread_exit(NULL);
 }
