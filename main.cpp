@@ -52,6 +52,7 @@ void *motherCrow(void *threadid) {
         goto_sleep();
         sleep(PREPARING_FOOD_TIME);
         food_ready();
+        cout << "Mother crow takes a nap" << endl;
         sleep(WAITING_TIME);
     }
     sem_wait(&console);
@@ -74,12 +75,10 @@ void food_ready() {
     fillingNum = m ;
     //sem_post(&mutex);
     sem_post(&isFeeding);
-
 }
 
 void goto_sleep() {
     sem_wait(&console);
-    cout << "Mother crow takes a nap" << endl;
     sem_post(&console);
     sem_wait(&notify);
     cout << "Mother crow is awoke by baby crow " << awoker << " and starts preparing food." << endl;
