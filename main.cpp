@@ -52,7 +52,9 @@ void *motherCrow(void *threadid) {
         goto_sleep();
         sleep(PREPARING_FOOD_TIME);
         food_ready();
+        sem_wait(&console);
         cout << "Mother crow takes a nap" << endl;
+        sem_post(&console);
         sleep(WAITING_TIME);
     }
     sem_wait(&console);
@@ -64,34 +66,29 @@ void *motherCrow(void *threadid) {
 void food_ready() {
     feeding++;
     sem_wait(&isFeeding);
-    //sem_wait(&isFeeding);
     sem_wait(&console);
     cout << "Mother crow says \"Feeding (" << feeding << ")\"" << endl;
     sem_post(&console);
     sem_post(&restFood);
     for (int i = 0; i < m; i++)
         sem_post(&restFood);
-    //sem_wait(&mutex);
     fillingNum = m ;
-    //sem_post(&mutex);
     sem_post(&isFeeding);
 }
 
 void goto_sleep() {
-    sem_wait(&console);
-    sem_post(&console);
     sem_wait(&notify);
+    sem_wait(&console);
     cout << "Mother crow is awoke by baby crow " << awoker << " and starts preparing food." << endl;
+    sem_post(&console);
 }
 
 void finish_eating() {
-//    sem_wait(&mutex);
     if (fillingNum == 0) {
         sem_post(&restFood);
     } else {
         fillingNum--;
     }
-//    sem_post(&mutex);
 }
 
 void ready_to_eat(int tid) {
@@ -104,9 +101,6 @@ void ready_to_eat(int tid) {
     sem_wait(&isFeeding);
     sem_post(&isFeeding);
     if (fillingNum == 0) {
-       // fillingNum++;
-//        sem_wait(&restFood);
-//        sem_post(&restFood);
         sem_wait(&console);
         for( int i = 0 ; i < tid ; i++)
             cout << " ";
