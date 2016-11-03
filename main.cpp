@@ -61,7 +61,7 @@ void* motherCrow(void *threadid) {
 void food_ready() {
     feeding++;
     sem_wait(&console);
-    cout << "Mother crow says \"Feeding ("<<feeding << ")" << endl;
+    cout << "Mother crow says \"Feeding ("<<feeding << ")\"" << endl;
     cout << "Mother crow is awoke by baby crow " << awoker << " and starts preparing food." << endl;
     sem_post(&console);
     for (int i = 0; i < m; i++)
