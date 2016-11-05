@@ -24,8 +24,6 @@ sem_t mutex1;
 sem_t mutex2;
 sem_t console;
 
-sem_t mutex3;
-
 void ready_to_eat(int);
 
 void finish_eating(int);
@@ -65,8 +63,8 @@ void *motherCrow(void *threadid) {
     }
     sem_wait(&console);
     cout << "Mother crow retires after serving " << feeding << " feedings. Game ends!!!" << endl;
+    sem_post(&console);
     exit(0);
-    // sem_post(&console);
 
 }
 
@@ -93,10 +91,7 @@ void goto_sleep() {
 }
 
 void finish_eating(int tid) {
-    int x;
     sem_wait(&restFood);
-//    sem_wait(&mutex3);
-//    sem_post(&mutex3);
     sem_wait(&console);
     int index = 0;
     bool flag = false ;
@@ -117,7 +112,6 @@ void finish_eating(int tid) {
     if( flag == false ){
         for( int i = 0 ; i < m ;i++ ){
             if (pots[i] == 0) {
-                flag = true;
                 pots[i] = 1;
                 for (int i = 0; i < tid; i++)
                     cout << " ";
@@ -161,7 +155,6 @@ void ready_to_eat(int tid) {
         sem_post(&isFeeding);
     }
     sem_post(&mutex1);
-    //finish_eating();
 }
 
 int main(int argc, char *argv[]) {
@@ -183,7 +176,6 @@ int main(int argc, char *argv[]) {
     sem_init(&mutex2, 0, 1);
     sem_init(&console, 0, 1);
     sem_init(&isFeeding, 0, 1);
-    sem_init(&mutex3, 0, 1);
 
     sem_wait(&console);
     printf("MAIN : There are %d baby crows, %d feeding pots , and %d feedings\n", n, m, t);
@@ -207,7 +199,6 @@ int main(int argc, char *argv[]) {
     sem_destroy(&restFood);
     sem_destroy(&notify);
     sem_destroy(&mutex1);
-    sem_destroy(&mutex3);
     sem_destroy(&mutex2);
     sem_destroy(&console);
     sem_destroy(&isFeeding);
